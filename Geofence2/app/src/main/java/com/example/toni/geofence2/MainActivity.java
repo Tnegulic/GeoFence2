@@ -1,11 +1,13 @@
 package com.example.toni.geofence2;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
+import android.provider.CalendarContract;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
@@ -17,6 +19,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -46,6 +49,9 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.TRUE;
+
 public class MainActivity extends AppCompatActivity implements
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
@@ -56,11 +62,11 @@ public class MainActivity extends AppCompatActivity implements
 {
     private static final String TAG = MainActivity.class.getSimpleName();
 
-    private TextView textLat, textLong, test;
+    private TextView textLat, textLong;
     private Button add_button;
     private MapFragment mapFragment;
     private GoogleMap map;
-
+    private Toast msgToast;
     private GoogleApiClient googleApiClient;
 
     private GeofencingClient geofencingClient;
@@ -69,6 +75,7 @@ public class MainActivity extends AppCompatActivity implements
 
     private Location lastLocation;
     private List<Event> EVENTS = new ArrayList<Event>();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,9 +88,10 @@ public class MainActivity extends AppCompatActivity implements
         EVENTS.add(new Event("Prvi",new LatLng(45.4123, 14.4336),500.0f,1000*60*60,1,12,0,"košarka","Luka","20:50"));
         EVENTS.add(new Event("Drugi",new LatLng(45.4003, 14.4326),500.0f,1000*60*60,2,14,0,"nogomet","David","10:50"));
 
+
         textLat = (TextView) findViewById(R.id.lat);
         textLong = (TextView) findViewById(R.id.lon);
-        test = (TextView) findViewById(R.id.test);
+
 
         geofencingClient = LocationServices.getGeofencingClient(this);
 
@@ -93,8 +101,15 @@ public class MainActivity extends AppCompatActivity implements
                 //funkcionalnost neka, konkretno dodavanje u listu evenata
                 if(geoFenceMarker!=null) {
                     //EVENTS.add(new Event(geoFenceMarker.getPosition(), new String("Treci")));
-                    EVENTS.add(new Event("Rukomettt",geoFenceMarker.getPosition(),1500.0f,1000*60*60,3,12,0,"rukomet","Toni","17:50"));
+                    Intent addIntent = new Intent(getApplicationContext(), AddEventActivity.class);
+                    addIntent.putExtra("info", "inf33");
+                    addIntent.putExtra("Lat", geoFenceMarker.getPosition().latitude);
+                    addIntent.putExtra("Long", geoFenceMarker.getPosition().longitude);
+                    startActivityForResult(addIntent, 222);
+                    /*
+                    EVENTS.add(new Event("Rukomettt",new LatLng(45.3903, 14.4226),1500.0f,1000*60*60,3,12,0,"rukomet","Toni","17:50"));
                     startGeofence();
+                        */
                 }
                 reDrawEvents();
             }
@@ -105,15 +120,42 @@ public class MainActivity extends AppCompatActivity implements
         createGoogleApi();
     }
 
+    //0. Activiry communication
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        switch(requestCode) {
+            case (222) : {
+                if (resultCode == RESULT_OK) {
+                    // TODO Extract the data returned from the child Activity.
+                    String id = data.getStringExtra("id");
+                    Log.d("aaaaaaaaaaaaaaaaaa", id);
+
+                    String time = data.getStringExtra("time");
+                    String sport = data.getStringExtra("sport");
+                    float radius = Float.parseFloat(data.getStringExtra("rad"));
+                    long duration = Long.parseLong(data.getStringExtra("dur")) * 1000*60; //vrijeme uneseno u minutama pretvoreno u ms
+                    int size = Integer.parseInt(data.getStringExtra("size"));
+
+                    EVENTS.add(new Event(id, geoFenceMarker.getPosition(),radius,duration,4,size,0,sport,"TONI",time));
+                    Log.d("aaaaaaaaaaaaaaaaaa", Float.toString(EVENTS.get(2 ).getmRadius()));
+
+                    startGeofence();
+                    reDrawEvents();
+
+                }
+                break;
+            }
+        }
+    }
+
     //1. MAPA
 
     private void reDrawEvents(){
         map.clear();
         if(lastLocation!=null) {
-            map.addMarker(new MarkerOptions()
-                    .position(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()))
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
-                    .title("Tvoja lokacija"));
+            writeLastLocation();
         }
         for(int ix = 0; ix < EVENTS.size(); ix++) {
             map.addMarker(new MarkerOptions()
@@ -217,7 +259,8 @@ public class MainActivity extends AppCompatActivity implements
                 Log.i(TAG, "LasKnown location. " +
                         "Long: " + lastLocation.getLongitude() +
                         " | Lat: " + lastLocation.getLatitude());
-                writeLastLocation();
+                //writeLastLocation();
+                reDrawEvents();
                 startLocationUpdates();
             } else {
                 Log.w(TAG, "No location retrieved yet");
@@ -315,7 +358,7 @@ public class MainActivity extends AppCompatActivity implements
     // Create a Location Marker
     private void markerLocation(LatLng latLng) {
         Log.i(TAG, "markerLocation("+latLng+")");
-        String title = latLng.latitude + ", " + latLng.longitude;
+        String title = "tvoja pozicija";
         MarkerOptions markerOptions = new MarkerOptions()
                 .position(latLng)
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
@@ -397,6 +440,7 @@ public class MainActivity extends AppCompatActivity implements
     // Add the created GeofenceRequest to the device's monitoring list
     private void addGeofence(GeofencingRequest request) {
         Log.d(TAG, "addGeofence");
+        Log.d(TAG, Boolean.toString(checkPermission()));
         if (checkPermission())
 
             geofencingClient.addGeofences(request, createGeofencePendingIntent()).addOnSuccessListener(this, new OnSuccessListener<Void>() {
@@ -404,7 +448,8 @@ public class MainActivity extends AppCompatActivity implements
                 public void onSuccess(Void aVoid) {
                     // Geofences added
                     // ...
-                    test.setText( "Test: " + "success" );
+                    msgToast = Toast.makeText(getApplicationContext() ,"Event added", Toast.LENGTH_SHORT);
+                    msgToast.show();
                     Log.d(TAG, "Geofence added");
                 }
             })
@@ -413,16 +458,11 @@ public class MainActivity extends AppCompatActivity implements
                         public void onFailure(@NonNull Exception e) {
                             // Failed to add geofences
                             // ...
-                            test.setText( "Test: " + "fail" );
+                            msgToast.setText( "Test: " + "fail" );
+                            msgToast.show();
                         }
                     });;
 
-           /* LocationServices.GeofencingClient().addGeofences(
-                    googleApiClient,
-                    request,
-                    createGeofencePendingIntent()
-            ).setResultCallback((ResultCallback<? super Status>) this);
-            */
     }
 
     public void onResult(@NonNull Status status) {
@@ -469,7 +509,7 @@ public class MainActivity extends AppCompatActivity implements
                 return true;
             }
         }
-        test.setText( "Test: " + "crtam geofence" + item.toString() );
+
         return super.onOptionsItemSelected(item);
     }
 

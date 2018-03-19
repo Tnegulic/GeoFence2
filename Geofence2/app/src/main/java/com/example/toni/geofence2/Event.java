@@ -1,19 +1,28 @@
 package com.example.toni.geofence2;
 
+import android.arch.persistence.room.ColumnInfo;
+import android.arch.persistence.room.Entity;
+import android.arch.persistence.room.Ignore;
+import android.arch.persistence.room.PrimaryKey;
+
 import com.google.android.gms.maps.model.LatLng;
 
-/**
- * Created by Toni on 10.03.2018..
- */
 
+@Entity(tableName = "event")
 public class Event {
 
+    @ColumnInfo(name = "mId")
     private String mId;       //Naslov
 
-    private LatLng mLatLng;
+    @ColumnInfo(name = "mLat")
+    private double mLat;
+    @ColumnInfo(name = "mLng")
+    private double mLng;
+    @ColumnInfo(name = "mRadius")
     private float mRadius;
+    @ColumnInfo(name = "mDuration")
     private long mDuration; //trajanje geofencea
-
+    @PrimaryKey(autoGenerate = true)
     private int mNumId;        // br eventa
 
     private int mSize;      //max broj mjesta
@@ -22,15 +31,104 @@ public class Event {
     private String mOwner;
     private String mTime; //vrijeme eventa
 
+    public Event() {
 
-    public Event(LatLng latLng, String s) { //trenutacni constructor
-        mLatLng = latLng;
-        mId = s;
     }
 
+    public void setId(String mId) {
+        this.mId = mId;
+    }
+
+    public void setLat(double mLat) {
+        this.mLat = mLat;
+    }
+
+    public void setLng(double mLng) {
+        this.mLng = mLng;
+    }
+
+    public void setRadius(float mRadius) {
+        this.mRadius = mRadius;
+    }
+
+    public void setDuration(long mDuration) {
+        this.mDuration = mDuration;
+    }
+
+    public void setNumId(int mNumId) {
+        this.mNumId = mNumId;
+    }
+
+    public void setSize(int mSize) {
+        this.mSize = mSize;
+    }
+
+    public void setGooing(int mGooing) {
+        this.mGooing = mGooing;
+    }
+
+    public void setSport(String mSport) {
+        this.mSport = mSport;
+    }
+
+    public void setOwner(String mOwner) {
+        this.mOwner = mOwner;
+    }
+
+    public void setTime(String mTime) {
+        this.mTime = mTime;
+    }
+
+
+    public String getId() {
+        return mId;
+    }
+
+    public double getLat() {
+        return mLat;
+    }
+
+    public double getLng() {
+        return mLng;
+    }
+
+    public float getRadius() {
+        return mRadius;
+    }
+
+    public long getDuration() {
+        return mDuration;
+    }
+
+    public int getNumId() {
+        return mNumId;
+    }
+
+    public int getSize() {
+        return mSize;
+    }
+
+    public int getGooing() {
+        return mGooing;
+    }
+
+    public String getSport() {
+        return mSport;
+    }
+
+    public String getOwner() {
+        return mOwner;
+    }
+
+    public String getTime() {
+        return mTime;
+    }
+
+    @Ignore
     public Event(String mId, LatLng mLatLng, float mRadius, long mDuration, int mNumId, int mSize, int mGooing, String mSport, String mOwner, String mTime) {
         this.mId = mId;
-        this.mLatLng = mLatLng;
+        this.mLat = mLatLng.latitude;
+        this.mLng = mLatLng.longitude;
         this.mRadius = mRadius;
         this.mDuration = mDuration;
         this.mNumId = mNumId;
@@ -40,49 +138,20 @@ public class Event {
         this.mOwner = mOwner;
         this.mTime = mTime;
     }
-
-    void StoreEvent(LatLng latlng, String id) { //potencijala funkcija za update eventa u bazi
-        mLatLng = latlng;
-        mId = id;
+    @Ignore
+    public Event(String mId, LatLng mLatLng, float mRadius, long mDuration, int mSize, int mGooing, String mSport, String mOwner, String mTime) {
+        this.mId = mId;
+        this.mLat = mLatLng.latitude;
+        this.mLng = mLatLng.longitude;
+        this.mRadius = mRadius;
+        this.mDuration = mDuration;
+        this.mSize = mSize;
+        this.mGooing = mGooing;
+        this.mSport = mSport;
+        this.mOwner = mOwner;
+        this.mTime = mTime;
     }
 
-    public String getmId() {
-        return mId;
-    }
 
-    public LatLng getmLatLng() {
-        return mLatLng;
-    }
 
-    public float getmRadius() {
-        return mRadius;
-    }
-
-    public long getmDuration() {
-        return mDuration;
-    }
-
-    public int getmNumId() {
-        return mNumId;
-    }
-
-    public int getmSize() {
-        return mSize;
-    }
-
-    public String getmSport() {
-        return mSport;
-    }
-
-    public String getmOwner() {
-        return mOwner;
-    }
-
-    public int getmGooing() {
-        return mGooing;
-    }
-
-    public String getmTime() {
-        return mTime;
-    }
 }

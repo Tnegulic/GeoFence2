@@ -1,6 +1,5 @@
 package com.example.toni.geofence2;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -12,19 +11,24 @@ import android.widget.TextView;
 
 public class AddEventActivity extends AppCompatActivity {
 
-    private TextView editLat, editLong, editId, editRadius, editDuration, editSize, editTime, editSport;
+    private TextView editId;
+    private TextView editRadius;
+    private TextView editDuration;
+    private TextView editSize;
+    private TextView editTime;
+    private TextView editSport;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_event);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         Intent addIntent = getIntent();
 
-        editLat = findViewById(R.id.edit_lat);
-        editLong = findViewById(R.id.edit_long);
+        TextView editLat = findViewById(R.id.edit_lat);
+        TextView editLong = findViewById(R.id.edit_long);
         editId =findViewById(R.id.editId);
         editRadius = findViewById(R.id.editRadius);
         editDuration = findViewById(R.id.editDuration);
@@ -36,7 +40,7 @@ public class AddEventActivity extends AppCompatActivity {
         editLat.setText("Lat: "+String.valueOf(addIntent.getDoubleExtra("Lat",0)));
 
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

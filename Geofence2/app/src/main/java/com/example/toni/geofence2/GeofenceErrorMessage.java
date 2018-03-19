@@ -1,8 +1,6 @@
 package com.example.toni.geofence2;
 
-/**
- * Created by Toni on 11.03.2018..
- */
+
 import android.content.Context;
 import android.content.res.Resources;
 

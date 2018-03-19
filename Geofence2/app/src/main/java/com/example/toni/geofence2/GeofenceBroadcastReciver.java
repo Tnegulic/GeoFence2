@@ -3,7 +3,7 @@ package com.example.toni.geofence2;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
+
 
 /**
  * Receiver for geofence transition changes.

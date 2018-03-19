@@ -3,6 +3,8 @@ package com.example.toni.geofence2;
 import android.Manifest;
 import android.app.Activity;
 import android.app.PendingIntent;
+import android.arch.persistence.room.Room;
+import android.arch.persistence.room.TypeConverter;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -48,9 +50,8 @@ import com.google.android.gms.tasks.OnSuccessListener;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Observer;
 
-import static java.lang.Boolean.FALSE;
-import static java.lang.Boolean.TRUE;
 
 public class MainActivity extends AppCompatActivity implements
         GoogleApiClient.ConnectionCallbacks,
@@ -76,6 +77,8 @@ public class MainActivity extends AppCompatActivity implements
     private Location lastLocation;
     private List<Event> EVENTS = new ArrayList<Event>();
 
+    private AppDatabase db;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,15 +86,17 @@ public class MainActivity extends AppCompatActivity implements
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // EVENTS.add(new Event(new LatLng(45.455, 14.4668), new String("Prvi")));
-        // EVENTS.add(new Event(new LatLng(45.4123, 14.4336), new String("Drugi")));
-        EVENTS.add(new Event("Prvi",new LatLng(45.4123, 14.4336),500.0f,1000*60*60,1,12,0,"košarka","Luka","20:50"));
-        EVENTS.add(new Event("Drugi",new LatLng(45.4003, 14.4326),500.0f,1000*60*60,2,14,0,"nogomet","David","10:50"));
+
+        //EVENTS.add(new Event("Prvi",new LatLng(45.4123, 14.4336),500.0f,1000*60*60,1,12,0,"košarka","Luka","20:50"));
+        //EVENTS.add(new Event("Drugi",new LatLng(45.4003, 14.4326),500.0f,1000*60*60,2,14,0,"nogomet","David","10:50"));
 
 
         textLat = (TextView) findViewById(R.id.lat);
         textLong = (TextView) findViewById(R.id.lon);
 
+        //pokusaj db
+        //ovo kao radi
+       DatabaseInitializer.populateAsync(AppDatabase.getAppDatabase(this));
 
         geofencingClient = LocationServices.getGeofencingClient(this);
 
@@ -120,7 +125,14 @@ public class MainActivity extends AppCompatActivity implements
         createGoogleApi();
     }
 
-    //0. Activiry communication
+    @Override
+    protected void onDestroy() {
+        AppDatabase.destroyInstance();
+        super.onDestroy();
+    }
+
+
+    //0. Activity communication
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -128,18 +140,22 @@ public class MainActivity extends AppCompatActivity implements
         switch(requestCode) {
             case (222) : {
                 if (resultCode == RESULT_OK) {
-                    // TODO Extract the data returned from the child Activity.
+
                     String id = data.getStringExtra("id");
-                    Log.d("aaaaaaaaaaaaaaaaaa", id);
+                    Log.d("TESTING:", id);
 
                     String time = data.getStringExtra("time");
                     String sport = data.getStringExtra("sport");
                     float radius = Float.parseFloat(data.getStringExtra("rad"));
                     long duration = Long.parseLong(data.getStringExtra("dur")) * 1000*60; //vrijeme uneseno u minutama pretvoreno u ms
                     int size = Integer.parseInt(data.getStringExtra("size"));
+                    //TODO iz sesije izvuci mOwner i dodati u event
 
-                    EVENTS.add(new Event(id, geoFenceMarker.getPosition(),radius,duration,4,size,0,sport,"TONI",time));
-                    Log.d("aaaaaaaaaaaaaaaaaa", Float.toString(EVENTS.get(2 ).getmRadius()));
+                    AppDatabase db = AppDatabase.getAppDatabase(this);
+                    db.eventDao().insertAll(new Event(id, geoFenceMarker.getPosition(),radius,duration,size,0,sport,"TONI",time));
+
+
+                    Log.d("TESTING:", Float.toString(EVENTS.get(2 ).getRadius()));
 
                     startGeofence();
                     reDrawEvents();
@@ -153,16 +169,20 @@ public class MainActivity extends AppCompatActivity implements
     //1. MAPA
 
     private void reDrawEvents(){
+        //dohvađanje najnovije liste iz baze
+        AppDatabase db = AppDatabase.getAppDatabase(this);
+        EVENTS = db.eventDao().getAll();
+
         map.clear();
         if(lastLocation!=null) {
             writeLastLocation();
         }
         for(int ix = 0; ix < EVENTS.size(); ix++) {
             map.addMarker(new MarkerOptions()
-                    .position(EVENTS.get(ix).getmLatLng())
-                    .title(EVENTS.get(ix).getmId()+": "+EVENTS.get(ix).getmSport()+", "+EVENTS.get(ix).getmTime()+", "+EVENTS.get(ix).getmGooing()+"/"+EVENTS.get(ix).getmSize()));
+                    .position(new LatLng(EVENTS.get(ix).getLat(),EVENTS.get(ix).getLng()))
+                    .title(EVENTS.get(ix).getId()+": "+EVENTS.get(ix).getSport()+", "+EVENTS.get(ix).getTime()+", "+EVENTS.get(ix).getGooing()+"/"+EVENTS.get(ix).getSize()));
 
-            drawCircle(EVENTS.get(ix).getmLatLng(), EVENTS.get(ix).getmRadius());
+            drawCircle(new LatLng(EVENTS.get(ix).getLat(),EVENTS.get(ix).getLng()), EVENTS.get(ix).getRadius());
         }
     }
 
@@ -405,9 +425,9 @@ public class MainActivity extends AppCompatActivity implements
     private Geofence createGeofence(LatLng latLng, float radius ) {
         Log.d(TAG, "createGeofence");
         return new Geofence.Builder()
-                .setRequestId(EVENTS.get(EVENTS.size() - 1).getmId())
+                .setRequestId(EVENTS.get(EVENTS.size() - 1).getId())
                 .setCircularRegion( latLng.latitude, latLng.longitude, radius)
-                .setExpirationDuration(EVENTS.get(EVENTS.size() - 1).getmDuration())
+                .setExpirationDuration(EVENTS.get(EVENTS.size() - 1).getDuration())
                 .setTransitionTypes( Geofence.GEOFENCE_TRANSITION_ENTER
                         | Geofence.GEOFENCE_TRANSITION_EXIT )
                 .build();
@@ -517,7 +537,7 @@ public class MainActivity extends AppCompatActivity implements
     private void startGeofence() {
         Log.i(TAG, "startGeofence()");
         if( geoFenceMarker != null ) {
-            Geofence geofence = createGeofence( geoFenceMarker.getPosition(), EVENTS.get(EVENTS.size() - 1).getmRadius() );
+            Geofence geofence = createGeofence( geoFenceMarker.getPosition(), EVENTS.get(EVENTS.size() - 1).getRadius() );
             GeofencingRequest geofenceRequest = createGeofenceRequest( geofence );
             addGeofence( geofenceRequest );
 

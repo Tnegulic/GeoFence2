@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
+import android.os.Handler;
 import android.provider.CalendarContract;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -51,6 +52,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Observer;
+import java.util.Timer;
 
 
 public class MainActivity extends AppCompatActivity implements
@@ -75,10 +77,11 @@ public class MainActivity extends AppCompatActivity implements
     private Marker locationMarker;
 
     private Location lastLocation;
-    private List<Event> EVENTS = new ArrayList<Event>();
+    public List<Event> EVENTS = new ArrayList<Event>();
 
     private AppDatabase db;
 
+    private Timer mTimer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,7 +92,7 @@ public class MainActivity extends AppCompatActivity implements
 
         //EVENTS.add(new Event("Prvi",new LatLng(45.4123, 14.4336),500.0f,1000*60*60,1,12,0,"košarka","Luka","20:50"));
         //EVENTS.add(new Event("Drugi",new LatLng(45.4003, 14.4326),500.0f,1000*60*60,2,14,0,"nogomet","David","10:50"));
-
+        geofencingClient = LocationServices.getGeofencingClient(this);
 
         textLat = (TextView) findViewById(R.id.lat);
         textLong = (TextView) findViewById(R.id.lon);
@@ -98,7 +101,13 @@ public class MainActivity extends AppCompatActivity implements
         //ovo kao radi
        DatabaseInitializer.populateAsync(AppDatabase.getAppDatabase(this));
 
-        geofencingClient = LocationServices.getGeofencingClient(this);
+
+
+
+        //timer
+        mTimer = new Timer();
+
+        //mTimer.schedule(new UpdateTimer(),0,1000);
 
         add_button = (Button) findViewById(R.id.add_button);
         add_button.setOnClickListener(new View.OnClickListener() {
@@ -111,10 +120,7 @@ public class MainActivity extends AppCompatActivity implements
                     addIntent.putExtra("Lat", geoFenceMarker.getPosition().latitude);
                     addIntent.putExtra("Long", geoFenceMarker.getPosition().longitude);
                     startActivityForResult(addIntent, 222);
-                    /*
-                    EVENTS.add(new Event("Rukomettt",new LatLng(45.3903, 14.4226),1500.0f,1000*60*60,3,12,0,"rukomet","Toni","17:50"));
-                    startGeofence();
-                        */
+
                 }
                 reDrawEvents();
             }
@@ -123,6 +129,8 @@ public class MainActivity extends AppCompatActivity implements
         initGMaps();
         // create GoogleApiClient
         createGoogleApi();
+
+        //TODO ucitat sve elemente iz baze i pogenut geofence za svakog do njih
     }
 
     @Override
@@ -141,7 +149,7 @@ public class MainActivity extends AppCompatActivity implements
             case (222) : {
                 if (resultCode == RESULT_OK) {
 
-                    String id = data.getStringExtra("id");
+                    final String id = data.getStringExtra("id");
                     Log.d("TESTING:", id);
 
                     String time = data.getStringExtra("time");
@@ -151,9 +159,23 @@ public class MainActivity extends AppCompatActivity implements
                     int size = Integer.parseInt(data.getStringExtra("size"));
                     //TODO iz sesije izvuci mOwner i dodati u event
 
-                    AppDatabase db = AppDatabase.getAppDatabase(this);
+                    final AppDatabase db = AppDatabase.getAppDatabase(this);
                     db.eventDao().insertAll(new Event(id, geoFenceMarker.getPosition(),radius,duration,size,0,sport,"TONI",time));
+                    mTimer.schedule(new UpdateTimer(){
+                        public void run(){
+                            Log.d("******", "kraj eventa");
 
+                            Event newevent = db.eventDao().findByName(id);
+                            Log.d("******",newevent.getSport());
+                            db.eventDao().delete(newevent);
+                            Log.d("******", "event izbrisan");
+                            //reDrawEvents(); quick fix
+                            //TODO redraw() dovodi do greske u dretvama "Not on main thread"
+                            //TODO uglavnom radi sto treba osim REDRAW PROBLEMA
+
+                        }
+
+                    }, 30000);
 
                     Log.d("TESTING:", Float.toString(EVENTS.get(2 ).getRadius()));
 
@@ -182,7 +204,7 @@ public class MainActivity extends AppCompatActivity implements
                     .position(new LatLng(EVENTS.get(ix).getLat(),EVENTS.get(ix).getLng()))
                     .title(EVENTS.get(ix).getId()+": "+EVENTS.get(ix).getSport()+", "+EVENTS.get(ix).getTime()+", "+EVENTS.get(ix).getGooing()+"/"+EVENTS.get(ix).getSize()));
 
-            drawCircle(new LatLng(EVENTS.get(ix).getLat(),EVENTS.get(ix).getLng()), EVENTS.get(ix).getRadius());
+            drawCircle(new LatLng(EVENTS.get(ix).getLat(),EVENTS.get(ix).getLng()), EVENTS.get(ix).getRadius(), ix);
         }
     }
 
@@ -510,22 +532,25 @@ public class MainActivity extends AppCompatActivity implements
         geoFenceLimits = map.addCircle( circleOptions );
     }
 
-    private void drawCircle( LatLng latLng, float r) {
+    private void drawCircle(LatLng latLng, float r, final int rmid) {
         Log.d(TAG, "drawCircle()");
 
         CircleOptions circleOptions = new CircleOptions()
                 .center( latLng)
                 .strokeColor(Color.argb(50, 70,70,70))
-                .fillColor( Color.argb(100, 150,150,150) )
+                .fillColor( Color.argb(100, 150,150,150))
                 .radius( r );
         map.addCircle( circleOptions );
+
+
     }
-    //PROBLEM NE OKIDA SE NIKAD !!!!
+
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch ( item.getItemId() ) {
             case R.id.geofence: {
-                startGeofence();
+                //startGeofence();
                 return true;
             }
         }
@@ -540,6 +565,7 @@ public class MainActivity extends AppCompatActivity implements
             Geofence geofence = createGeofence( geoFenceMarker.getPosition(), EVENTS.get(EVENTS.size() - 1).getRadius() );
             GeofencingRequest geofenceRequest = createGeofenceRequest( geofence );
             addGeofence( geofenceRequest );
+            Log.e("TESTING:geofenceID", geofence.getRequestId());
 
         } else {
             Log.e(TAG, "Geofence marker is null");

@@ -13,6 +13,7 @@ import android.os.Handler;
 import android.provider.CalendarContract;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -21,6 +22,7 @@ import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -130,7 +132,7 @@ public class MainActivity extends AppCompatActivity implements
         // create GoogleApiClient
         createGoogleApi();
 
-        //TODO ucitat sve elemente iz baze i pogenut geofence za svakog do njih
+        //TODO ucitat sve elemente iz baze i pogenut geofence za svakog do njih, paziti na duplikate !!
     }
 
     @Override
@@ -236,8 +238,25 @@ public class MainActivity extends AppCompatActivity implements
 
     // Callback called when Marker is touched
     @Override
-    public boolean onMarkerClick(Marker marker) {
-        Log.d(TAG, "onMarkerClickListener: " + marker.getPosition() );
+    public boolean onMarkerClick(final Marker marker) {
+        Log.d(TAG, "****onMarkerClickListener: " + marker.getPosition() );
+
+        //otvaranje nove aktivnosti na klik markera
+
+        Snackbar snackbar = Snackbar
+                .make(findViewById(R.id.LL), "Find more about event -->", Snackbar.LENGTH_LONG)
+                .setActionTextColor(getResources().getColor(R.color.colorPrimary))
+                .setAction("Details", new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        Intent detailsIntent = new Intent(getApplicationContext(), DetailsActivity.class);
+                        detailsIntent.putExtra("eventPosition", marker.getPosition());
+                        startActivity(detailsIntent);
+                    }
+                });
+
+        snackbar.show();
+
         return false;
     }
 

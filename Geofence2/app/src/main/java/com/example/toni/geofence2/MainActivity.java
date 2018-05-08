@@ -50,6 +50,11 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -81,9 +86,9 @@ public class MainActivity extends AppCompatActivity implements
     private Location lastLocation;
     public List<Event> EVENTS = new ArrayList<Event>();
 
-    private AppDatabase db;
-
     private Timer mTimer;
+
+    DatabaseReference myRef;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,22 +96,53 @@ public class MainActivity extends AppCompatActivity implements
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
-        //EVENTS.add(new Event("Prvi",new LatLng(45.4123, 14.4336),500.0f,1000*60*60,1,12,0,"košarka","Luka","20:50"));
-        //EVENTS.add(new Event("Drugi",new LatLng(45.4003, 14.4326),500.0f,1000*60*60,2,14,0,"nogomet","David","10:50"));
         geofencingClient = LocationServices.getGeofencingClient(this);
 
         textLat = (TextView) findViewById(R.id.lat);
         textLong = (TextView) findViewById(R.id.lon);
 
-        //pokusaj db
-        //ovo kao radi
-       DatabaseInitializer.populateAsync(AppDatabase.getAppDatabase(this));
+
+        //novi db, učitavanje podataka iz db u listu EVENTS
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        myRef = database.getReference("events");
+
+        // Read from the database
+        myRef.addValueEventListener(new ValueEventListener() {
+
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                // This method is called once with the initial value and again
+                // whenever data at this location is updated.
+                EVENTS.clear();
+                for(DataSnapshot snapshot :dataSnapshot.getChildren()){
+                    try {
+                        //Ako stavimo da je obavezno polje nece imati mogućnost generiranja NULL
+                        EVENTS.add(new Event(snapshot.getValue(Event.class).getId(),
+                                new LatLng(snapshot.getValue(Event.class).getLat(),snapshot.getValue(Event.class).getLng()),
+                                snapshot.getValue(Event.class).getRadius(),
+                                snapshot.getValue(Event.class).getDuration(),
+                                snapshot.getValue(Event.class).getNumId(),
+                                snapshot.getValue(Event.class).getSize(),
+                                snapshot.getValue(Event.class).getGooing(),
+                                snapshot.getValue(Event.class).getSport(),
+                                snapshot.getValue(Event.class).getOwner(),
+                                snapshot.getValue(Event.class).getTime()));
+                    } catch (Exception e) {
+                        Log.d("Fail: ", "Problem!");
+                    }
+                }
+                Log.d("TESTING ", "novi blok");
+                reDrawEvents();
+            }
+            @Override
+            public void onCancelled(DatabaseError error) {
+                // Failed to read value
+                Log.w(TAG, "Failed to read value.", error.toException());
+            }
+        });
 
 
-
-
-        //timer
+        //timer TODO zamijenjeno reall time bazom, izbrisati
         mTimer = new Timer();
 
         //mTimer.schedule(new UpdateTimer(),0,1000);
@@ -116,7 +152,6 @@ public class MainActivity extends AppCompatActivity implements
             public void onClick(View v) {
                 //funkcionalnost neka, konkretno dodavanje u listu evenata
                 if(geoFenceMarker!=null) {
-                    //EVENTS.add(new Event(geoFenceMarker.getPosition(), new String("Treci")));
                     Intent addIntent = new Intent(getApplicationContext(), AddEventActivity.class);
                     addIntent.putExtra("info", "inf33");
                     addIntent.putExtra("Lat", geoFenceMarker.getPosition().latitude);
@@ -133,11 +168,12 @@ public class MainActivity extends AppCompatActivity implements
         createGoogleApi();
 
         //TODO ucitat sve elemente iz baze i pogenut geofence za svakog do njih, paziti na duplikate !!
+        //TODO za sad radi na principu kada se doda event zadnji event iz liste doda se u geofence (nevalja jer vrijedi samo lokalno)
+        //todo potencijalno rijesenje -> nakon dohvacanja novog bloka izbrisi sve geofence i onda ih opet pokreni za sve elemente
     }
 
     @Override
     protected void onDestroy() {
-        AppDatabase.destroyInstance();
         super.onDestroy();
     }
 
@@ -161,25 +197,23 @@ public class MainActivity extends AppCompatActivity implements
                     int size = Integer.parseInt(data.getStringExtra("size"));
                     //TODO iz sesije izvuci mOwner i dodati u event
 
-                    final AppDatabase db = AppDatabase.getAppDatabase(this);
-                    db.eventDao().insertAll(new Event(id, geoFenceMarker.getPosition(),radius,duration,size,0,sport,"TONI",time));
-                    mTimer.schedule(new UpdateTimer(){
-                        public void run(){
-                            Log.d("******", "kraj eventa");
+                    //novi db - dodavanje u bazu
+                    myRef.push().setValue(new Event(id, geoFenceMarker.getPosition(),radius,duration,size,0,sport,"TONI",time));
 
-                            Event newevent = db.eventDao().findByName(id);
-                            Log.d("******",newevent.getSport());
-                            db.eventDao().delete(newevent);
-                            Log.d("******", "event izbrisan");
-                            //reDrawEvents(); quick fix
-                            //TODO redraw() dovodi do greske u dretvama "Not on main thread"
-                            //TODO uglavnom radi sto treba osim REDRAW PROBLEMA
+                    //TODO zamijeniti timer boljim rijesenjem, ako ne dodati brisanje  u NOVU BAZU
+                    //mTimer.schedule(new UpdateTimer(){
+                      //  public void run(){
+                       //     Log.d("******", "kraj eventa");
 
-                        }
+                           // Event newevent = db.eventDao().findByName(id);
+                            //Log.d("******",newevent.getSport());
+                           // db.eventDao().delete(newevent);
+                           // Log.d("******", "event izbrisan");
 
-                    }, 30000);
 
-                    Log.d("TESTING:", Float.toString(EVENTS.get(2 ).getRadius()));
+                     //   }
+
+                    //}, 30000);
 
                     startGeofence();
                     reDrawEvents();
@@ -193,15 +227,14 @@ public class MainActivity extends AppCompatActivity implements
     //1. MAPA
 
     private void reDrawEvents(){
-        //dohvađanje najnovije liste iz baze
-        AppDatabase db = AppDatabase.getAppDatabase(this);
-        EVENTS = db.eventDao().getAll();
+        //brisanje svih markera i iscrtavanje novih iz liste EVENTS
 
         map.clear();
         if(lastLocation!=null) {
             writeLastLocation();
         }
         for(int ix = 0; ix < EVENTS.size(); ix++) {
+            Log.d("TESTING:", String.valueOf(ix));
             map.addMarker(new MarkerOptions()
                     .position(new LatLng(EVENTS.get(ix).getLat(),EVENTS.get(ix).getLng()))
                     .title(EVENTS.get(ix).getId()+": "+EVENTS.get(ix).getSport()+", "+EVENTS.get(ix).getTime()+", "+EVENTS.get(ix).getGooing()+"/"+EVENTS.get(ix).getSize()));
@@ -250,7 +283,8 @@ public class MainActivity extends AppCompatActivity implements
                     @Override
                     public void onClick(View view) {
                         Intent detailsIntent = new Intent(getApplicationContext(), DetailsActivity.class);
-                        detailsIntent.putExtra("eventPosition", marker.getPosition());
+                        detailsIntent.putExtra("Lng", marker.getPosition().longitude);
+                        detailsIntent.putExtra("Lat", marker.getPosition().latitude);
                         startActivity(detailsIntent);
                     }
                 });

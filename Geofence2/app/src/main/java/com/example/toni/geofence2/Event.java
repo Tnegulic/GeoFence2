@@ -152,6 +152,20 @@ public class Event {
         this.mTime = mTime;
     }
 
-
-
+    @Override
+    public String toString() {
+        return "Event{" +
+                "mId='" + mId + '\'' +
+                ", mLat=" + mLat +
+                ", mLng=" + mLng +
+                ", mRadius=" + mRadius +
+                ", mDuration=" + mDuration +
+                ", mNumId=" + mNumId +
+                ", mSize=" + mSize +
+                ", mGooing=" + mGooing +
+                ", mSport='" + mSport + '\'' +
+                ", mOwner='" + mOwner + '\'' +
+                ", mTime='" + mTime + '\'' +
+                '}';
+    }
 }

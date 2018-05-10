@@ -275,7 +275,7 @@ public class MainActivity extends AppCompatActivity implements
         Log.d(TAG, "****onMarkerClickListener: " + marker.getPosition() );
 
         //otvaranje nove aktivnosti na klik markera
-
+        final String[] parts = marker.getTitle().split(":");
         Snackbar snackbar = Snackbar
                 .make(findViewById(R.id.LL), "Find more about event -->", Snackbar.LENGTH_LONG)
                 .setActionTextColor(getResources().getColor(R.color.colorPrimary))
@@ -283,8 +283,7 @@ public class MainActivity extends AppCompatActivity implements
                     @Override
                     public void onClick(View view) {
                         Intent detailsIntent = new Intent(getApplicationContext(), DetailsActivity.class);
-                        detailsIntent.putExtra("Lng", marker.getPosition().longitude);
-                        detailsIntent.putExtra("Lat", marker.getPosition().latitude);
+                        detailsIntent.putExtra("id", parts[0]);
                         startActivity(detailsIntent);
                     }
                 });

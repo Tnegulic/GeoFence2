@@ -8,6 +8,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -16,9 +17,12 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class DetailsActivity extends AppCompatActivity {
     ArrayList<Event> events = new ArrayList<Event>();
@@ -26,16 +30,51 @@ public class DetailsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_details);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+
 
         //dohvacanje intenta
         final Intent detailsIntent = getIntent();
+        final String idevent = String.valueOf(detailsIntent.getStringExtra("id"));
 
         //spajanje na bazu TESTNO
         // Write a message to the database
         FirebaseDatabase database = FirebaseDatabase.getInstance();
-        DatabaseReference myRef = database.getReference("events");
+        final DatabaseReference myRef = database.getReference("events");
+
+        //botun za dolazak
+        Button btn = findViewById(R.id.detailsbtn);
+        btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Query ref =  myRef.orderByChild("id").equalTo(idevent);
+
+                ref.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+
+                        for(DataSnapshot snapshot :dataSnapshot.getChildren()) {
+                            try {
+                                // UPDATE Događaja TODO napravit NEDOLAZIM u slucaju ako korisnik vec dolazi i validacija ako nema mjesta
+                                String key = snapshot.getKey();
+                                int gooing = snapshot.getValue(Event.class).getGooing();
+                                HashMap<String, Object> result = new HashMap<>();
+                                result.put("gooing", gooing+1);
+                                myRef.child(key).updateChildren(result);
+                            } catch (Exception e) {
+                                Log.d("Fail: ", "Problem!");
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+
+                    }
+                });
+
+            }
+
+        });
 
         // Read from the database
         myRef.addValueEventListener(new ValueEventListener() {
@@ -71,7 +110,8 @@ public class DetailsActivity extends AppCompatActivity {
                 }
 
                 for (Event event : events){
-                    if((detailsIntent.getDoubleExtra("Lat",0) == event.getLat()) && (detailsIntent.getDoubleExtra("Lng",0) == event.getLng())) {
+                    if(event.getId().equals(idevent)) {
+                        linearLayout.removeAllViews();
                         textView = new TextView(getApplicationContext());
                         textView.setText(event.getId());
                         textView1 = new TextView(getApplicationContext());
@@ -87,6 +127,7 @@ public class DetailsActivity extends AppCompatActivity {
                         linearLayout.addView(textView2);
                         linearLayout.addView(textView3);
                         linearLayout.addView(textView4);
+
                     }
                 }
             }
@@ -98,14 +139,7 @@ public class DetailsActivity extends AppCompatActivity {
             }
         });
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
+
     }
 
 }

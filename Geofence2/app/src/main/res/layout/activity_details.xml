@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:weightSum="1"
+    android:id="@+id/myLL"
     tools:context="com.example.toni.geofence2.DetailsActivity">
 
     <android.support.design.widget.AppBarLayout
@@ -20,14 +23,27 @@
 
     </android.support.design.widget.AppBarLayout>
 
-    <include layout="@layout/content_details" />
+    <LinearLayout
+        android:id="@+id/LLDetails"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.8"
+        android:gravity="top"
+        android:orientation="vertical">
 
-    <android.support.design.widget.FloatingActionButton
-        android:id="@+id/fab"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="@dimen/fab_margin"
-        app:srcCompat="@android:drawable/ic_dialog_email" />
+    </LinearLayout>
 
-</android.support.design.widget.CoordinatorLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.2"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/detailsbtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Dolazim" />
+    </LinearLayout>
+</LinearLayout>

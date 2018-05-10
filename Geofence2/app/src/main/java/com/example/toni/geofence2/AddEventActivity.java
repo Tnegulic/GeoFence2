@@ -8,6 +8,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class AddEventActivity extends AppCompatActivity {
 
@@ -47,11 +48,42 @@ public class AddEventActivity extends AppCompatActivity {
                 //slanje foreme u main activity
                 Intent adding = new Intent();
                 adding.putExtra("id", editId.getText().toString());
+
+                if (editId.getText().toString().matches("")) {
+                    Toast.makeText(getApplicationContext(), "You did not enter name", Toast.LENGTH_SHORT).show();
+                    finish();
+                    return;
+                }
                 adding.putExtra("rad", editRadius.getText().toString());
+                if (editRadius.getText().toString().matches("")) {
+                    Toast.makeText(getApplicationContext(), "You did not enter radius", Toast.LENGTH_SHORT).show();
+                    finish();
+                    return;
+                }
                 adding.putExtra("dur", editDuration.getText().toString());
+                if (editDuration.getText().toString().matches("")) {
+                    Toast.makeText(getApplicationContext(), "You did not enter duration", Toast.LENGTH_SHORT).show();
+                    finish();
+                    return;
+                }
                 adding.putExtra("size", editSize.getText().toString());
+                if (editSize.getText().toString().matches("")) {
+                    Toast.makeText(getApplicationContext(), "You did not enter a size", Toast.LENGTH_SHORT).show();
+                    finish();
+                    return;
+                }
                 adding.putExtra("time", editTime.getText().toString());
+                if (editTime.getText().toString().matches("")) {
+                    Toast.makeText(getApplicationContext(), "You did not enter a time", Toast.LENGTH_SHORT).show();
+                    finish();
+                    return;
+                }
                 adding.putExtra("sport", editSport.getText().toString());
+                if (editSport.getText().toString().matches("")) {
+                    Toast.makeText(getApplicationContext(), "You did not enter a sport", Toast.LENGTH_SHORT).show();
+                    finish();
+                    return;
+                }
                 setResult(RESULT_OK,adding);
                 finish();
 

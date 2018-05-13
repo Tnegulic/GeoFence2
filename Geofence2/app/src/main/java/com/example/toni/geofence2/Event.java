@@ -7,6 +7,9 @@ import android.arch.persistence.room.PrimaryKey;
 
 import com.google.android.gms.maps.model.LatLng;
 
+import java.text.DateFormat;
+import java.util.Date;
+
 
 @Entity(tableName = "event")
 public class Event {
@@ -29,7 +32,7 @@ public class Event {
     private int mGooing;    //br dolazaka
     private String mSport;
     private String mOwner;
-    private String mTime; //vrijeme eventa
+    private Date mTime; //vrijeme eventa
 
     public Event() {
 
@@ -75,7 +78,7 @@ public class Event {
         this.mOwner = mOwner;
     }
 
-    public void setTime(String mTime) {
+    public void setTime(Date mTime) {
         this.mTime = mTime;
     }
 
@@ -120,12 +123,12 @@ public class Event {
         return mOwner;
     }
 
-    public String getTime() {
+    public Date getmTime() {
         return mTime;
     }
 
     @Ignore
-    public Event(String mId, LatLng mLatLng, float mRadius, long mDuration, int mNumId, int mSize, int mGooing, String mSport, String mOwner, String mTime) {
+    public Event(String mId, LatLng mLatLng, float mRadius, long mDuration, int mNumId, int mSize, int mGooing, String mSport, String mOwner, Date mTime) {
         this.mId = mId;
         this.mLat = mLatLng.latitude;
         this.mLng = mLatLng.longitude;
@@ -139,7 +142,7 @@ public class Event {
         this.mTime = mTime;
     }
     @Ignore
-    public Event(String mId, LatLng mLatLng, float mRadius, long mDuration, int mSize, int mGooing, String mSport, String mOwner, String mTime) {
+    public Event(String mId, LatLng mLatLng, float mRadius, long mDuration, int mSize, int mGooing, String mSport, String mOwner, Date mTime) {
         this.mId = mId;
         this.mLat = mLatLng.latitude;
         this.mLng = mLatLng.longitude;

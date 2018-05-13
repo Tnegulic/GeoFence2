@@ -54,9 +54,13 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Observer;
 import java.util.Timer;
@@ -101,13 +105,16 @@ public class MainActivity extends AppCompatActivity implements
         textLat = (TextView) findViewById(R.id.lat);
         textLong = (TextView) findViewById(R.id.lon);
 
-
+        //TIMESTAMP
+        long ts = new Date().getTime();
+        Log.d("**** ", String.valueOf(ts));
         //novi db, učitavanje podataka iz db u listu EVENTS
         FirebaseDatabase database = FirebaseDatabase.getInstance();
         myRef = database.getReference("events");
+        Query ref = myRef.orderByChild("mTime/time").startAt(ts);
 
         // Read from the database
-        myRef.addValueEventListener(new ValueEventListener() {
+        ref.addValueEventListener(new ValueEventListener() {
 
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -126,9 +133,10 @@ public class MainActivity extends AppCompatActivity implements
                                 snapshot.getValue(Event.class).getGooing(),
                                 snapshot.getValue(Event.class).getSport(),
                                 snapshot.getValue(Event.class).getOwner(),
-                                snapshot.getValue(Event.class).getTime()));
+                                snapshot.getValue(Event.class).getmTime()));
+                        Log.d("**** ", String.valueOf(snapshot.getValue(Event.class).getmTime()));
                     } catch (Exception e) {
-                        Log.d("Fail: ", "Problem!");
+                        Log.d("**** ", "Problem!");
                     }
                 }
                 Log.d("TESTING ", "novi blok");
@@ -190,7 +198,17 @@ public class MainActivity extends AppCompatActivity implements
                     final String id = data.getStringExtra("id");
                     Log.d("TESTING:", id);
 
-                    String time = data.getStringExtra("time");
+                    String timeStr = data.getStringExtra("time");
+                    Log.d("****", timeStr);
+                    SimpleDateFormat dt = new SimpleDateFormat("yyyy-MM-dd kk:mm");
+                    Date time = null;
+                    try {
+                        time = dt.parse(timeStr);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                       //todo uzmi sadašnje vrijeme time = new Date().getTime();
+                    }
+                    Log.d("****", String.valueOf(time));
                     String sport = data.getStringExtra("sport");
                     float radius = Float.parseFloat(data.getStringExtra("rad"));
                     long duration = Long.parseLong(data.getStringExtra("dur")) * 1000*60; //vrijeme uneseno u minutama pretvoreno u ms
@@ -237,7 +255,7 @@ public class MainActivity extends AppCompatActivity implements
             Log.d("TESTING:", String.valueOf(ix));
             map.addMarker(new MarkerOptions()
                     .position(new LatLng(EVENTS.get(ix).getLat(),EVENTS.get(ix).getLng()))
-                    .title(EVENTS.get(ix).getId()+": "+EVENTS.get(ix).getSport()+", "+EVENTS.get(ix).getTime()+", "+EVENTS.get(ix).getGooing()+"/"+EVENTS.get(ix).getSize()));
+                    .title(EVENTS.get(ix).getId()+": "+EVENTS.get(ix).getSport()+", "+EVENTS.get(ix).getmTime()+", "+EVENTS.get(ix).getGooing()+"/"+EVENTS.get(ix).getSize()));
 
             drawCircle(new LatLng(EVENTS.get(ix).getLat(),EVENTS.get(ix).getLng()), EVENTS.get(ix).getRadius(), ix);
         }

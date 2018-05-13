@@ -20,6 +20,8 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -103,7 +105,7 @@ public class DetailsActivity extends AppCompatActivity {
                                 snapshot.getValue(Event.class).getGooing(),
                                 snapshot.getValue(Event.class).getSport(),
                                 snapshot.getValue(Event.class).getOwner(),
-                                snapshot.getValue(Event.class).getTime()));
+                                snapshot.getValue(Event.class).getmTime()));
                     } catch (Exception e) {
                         Log.d("Fail: ", "Problem!");
                     }
@@ -111,6 +113,8 @@ public class DetailsActivity extends AppCompatActivity {
 
                 for (Event event : events){
                     if(event.getId().equals(idevent)) {
+                        DateFormat df = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+
                         linearLayout.removeAllViews();
                         textView = new TextView(getApplicationContext());
                         textView.setText(event.getId());
@@ -121,7 +125,7 @@ public class DetailsActivity extends AppCompatActivity {
                         textView3 = new TextView(getApplicationContext());
                         textView3.setText(event.getSport());
                         textView4 = new TextView(getApplicationContext());
-                        textView4.setText(event.getTime());
+                        textView4.setText( df.format(event.getmTime()));
                         linearLayout.addView(textView);
                         linearLayout.addView(textView1);
                         linearLayout.addView(textView2);
